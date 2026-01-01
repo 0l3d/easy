@@ -24,47 +24,50 @@
 #include <stdint.h>
 #include <unistd.h>
 
-typedef long (*syscall_port_func)(long r0, long r1, long r2, long r3, long r4, long r5);
+typedef long    (*syscall_port_func) (long r0, long r1, long r2, long r3, long r4, long r5);
 
 struct syscall_entry {
-	const char* name;
+	const char     *name;
 	syscall_port_func pf;
 };
 
 enum {
 	SYS_READ = 0,
-	SYS_WRITE = 1, 
+	SYS_WRITE = 1,
 	SYS_MAX
 };
 
 
 
 long
-sys_read(long fd, long buf, long len, long unused_r4, long unused_r5) {
+sys_read(long fd, long buf, long len, long unused_r4, long unused_r5)
+{
 	return read(
-			(int)		fd,
-			(void*)		buf,
-			(size_t)	len
-			);
+		    (int) fd,
+		    (void *) buf,
+		    (size_t) len
+	);
 }
 
-long 
-sys_write(long fd, long buf, long len, long unused_r4, long unused_r5) {
+long
+sys_write(long fd, long buf, long len, long unused_r4, long unused_r5)
+{
 	return write(
-			(int)		fd, 
-			(void*)		buf,
-			(size_t)	len
-			);
+		     (int) fd,
+		     (void *) buf,
+		     (size_t) len
+	);
 }
 
-static struct syscall_entry 
-syscall_table[SYS_MAX] = {
-	[SYS_READ] 	= 	{"read", 	sys_read},
-	[SYS_WRITE]	=	{"write",	sys_write},
+static struct syscall_entry
+		syscall_table [SYS_MAX] = {
+	[SYS_READ] = {"read", sys_read},
+	[SYS_WRITE] = {"write", sys_write},
 };
 
-long 
-e_syscall(long number, long r0, long r1, long r2, long r3, long r4, long r5) {
+long
+e_syscall(long number, long r0, long r1, long r2, long r3, long r4, long r5)
+{
 	if (number < 0 || number >= SYS_MAX)
 		return -1;
 

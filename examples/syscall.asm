@@ -18,4 +18,4 @@ write:
   mov msg, r1 
   mov 7, r2
   syscall 1
-  
+   
