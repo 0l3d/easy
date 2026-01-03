@@ -8,7 +8,13 @@
 #include <string.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
+
+// PORTABILITY
+#if defined(__linux__)
+#include <unistd.h>
+#else
 #include "portability.h"
+#endif
 
 Flags 		flags = {0};
 

@@ -15,9 +15,8 @@ section data
     # len 112
 
     sockaddr hword 2
-             hword 36895      # BIG ENDIAN '8080'
-            # next feature is big endian support like "8080 !"
-            # usage: hword 8080 !
+             hword 8080 !
+	    # hword 36895      # BIG ENDIAN '8080'
             # the ! operator is swaps bytes like 901F to 1F90
             # or you can use bytes like this: 
             # byte 31 
