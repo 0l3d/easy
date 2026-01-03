@@ -636,7 +636,15 @@ collect_data(char line[1024])
 	}
 }
 
-
+int 
+big_endian_support(char** tokens, int count) {
+	for (int i = 0; i < count; i++) {
+		if (strcmp(tokens[i], "!") == 0) {
+			return 1;
+		}
+	}
+	return 0;
+}
 
 int
 writer_data(char line[1024], FILE * outfile)
@@ -676,24 +684,36 @@ writer_data(char line[1024], FILE * outfile)
 				}
 			} else if (count >= 2 && strcmp(tokens[counteri], "hword") == 0) {
 				uint16_t 	val = (uint16_t) strtol(tokens[++counteri], NULL, 0);
+				if (big_endian_support(tokens, count) == 1) 
+				{
+					putc((val >> 8) & 0xFF, outfile);
+					putc(val & 0xFF, outfile);
+				} else {
 				fputc(val & 0xFF, outfile);
-				fputc((val >> 8) & 0xFF, outfile);
+				fputc((val >> 8) & 0xFF, outfile); }
 			} else if (count >= 2 && strcmp(tokens[counteri], "word") == 0) {
 				uint32_t 	val = (uint32_t) strtol(tokens[++counteri], NULL, 0);
+				if (big_endian_support(tokens, count) == 1) 
+				{
+					fputc((val >> 24) & 0xFF, outfile);
+					fputc((val >> 16) & 0xFF, outfile);
+					fputc((val >> 8) & 0xFF, outfile);
+					fputc(val & 0xFF, outfile);
+				} else {
 				fputc(val & 0xFF, outfile);
 				fputc((val >> 8) & 0xFF, outfile);
 				fputc((val >> 16) & 0xFF, outfile);
 				fputc((val >> 24) & 0xFF, outfile);
+				}
 			} else if (count >= 2 && strcmp(tokens[counteri], "dword") == 0) {
 				uint64_t 	val = (uint64_t) strtol(tokens[++counteri], NULL, 0);
-				fputc(val & 0xFF, outfile);
-				fputc((val >> 8) & 0xFF, outfile);
-				fputc((val >> 16) & 0xFF, outfile);
-				fputc((val >> 24) & 0xFF, outfile);
-				fputc((val >> 32) & 0xFF, outfile);
-				fputc((val >> 40) & 0xFF, outfile);
-				fputc((val >> 48) & 0xFF, outfile);
-				fputc((val >> 56) & 0xFF, outfile);
+				if (big_endian_support(tokens, count) == 1) {
+					for (int i = 7; i >= 0; i--) 
+						fputc((val >> (i * 8)) & 0xFF, outfile);
+				} else {
+					for (int i = 0; i < 8; i++) 
+						fputc((val >> (i * 8)) & 0xFF, outfile);
+				}
 			}
 			counteri++;
 		}
