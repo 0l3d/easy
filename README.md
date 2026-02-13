@@ -17,7 +17,7 @@ Simple cpu architecture in C.
 ## Usage
 
 ```bash
-git clone https://github.com/0l3d/easy64.git
+git clone https://git.sr.ht/~oled/easy
 cd easy64/
 make
 
@@ -57,4 +57,4 @@ This project is licensed under the **GPL-3.0 License**.
 
 # Author
 
-Created By **ol3d**
+Created By **oled**
