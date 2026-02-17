@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define NUM_REGS 20
+#define NUM_REGS 15
 #define MEMORY_SIZE 65536
 #define ZMEMORY_SIZE 300
 
