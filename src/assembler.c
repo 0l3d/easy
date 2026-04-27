@@ -8,7 +8,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-int 		error_report = 0;
 int 		linecounter = 0;
 
 Label 		labels  [300] = {0};
@@ -227,7 +226,6 @@ def_operants(char **tokenized, Instruction * instrc, uint8_t opcode)
 	if (tokenized[2][0] != ',') {
 		printf("Got an error on Line %d, Situation: ',' undefined on %s\n",
 		       linecounter, tokenized[0]);
-		error_report = 1;
 	} else if (strcmp(tokenized[1], tokenized[3]) == 0) {
 		printf("Warning: same register? Line: %d. Situation: %s -> %s on %s\n",
 		     linecounter, tokenized[1], tokenized[3], tokenized[0]);
@@ -294,7 +292,6 @@ lbl_operand(char **tokens, Instruction * instrc, uint8_t opcode)
 	if (label_addr == -1) {
 		printf("Got an error Line: %d, Sitation: 'undefined label' %s\n",
 		       linecounter, label);
-		error_report = 1;
 	} else {
 		instrc->imm64 = label_addr;
 		instrc->src = 0xFF;
@@ -338,7 +335,6 @@ revdef_operants(char **tokenized, Instruction * instrc, uint8_t opcode)
 	if (tokenized[2][0] != ',') {
 		printf("Got an error on Line %d, Situation: ',' undefined on %s\n",
 		       linecounter, tokenized[0]);
-		error_report = 1;
 	} else if (strcmp(tokenized[1], tokenized[3]) == 0) {
 		printf("Warning: same register? Line: %d. Situation: %s -> %s on %s\n",
 		     linecounter, tokenized[1], tokenized[3], tokenized[0]);
@@ -532,14 +528,17 @@ collect_bss(char line[1024])
 void
 write_bss(const char *asm_file, const char *out_file)
 {
+	linecounter = 0;
 	for (int i = 0; i < imported_count; i++) {
+		linecounter = 0;
 		FILE           *imported_file = fopen(imported_files[i], "r");
 		if (imported_file == NULL) {
 			perror("Imported file error");
 			return;
 		}
 		char 		line     [1024];
-		while (fgets(line, sizeof(line), imported_file)) {
+		while (fgets(line, sizeof(line), imported_file)) {	
+			linecounter++;
 			collect_bss(line);
 		}
 		fclose(imported_file);
@@ -551,6 +550,7 @@ write_bss(const char *asm_file, const char *out_file)
 	}
 	char 		line     [1024];
 	while (fgets(line, sizeof(line), mainfile)) {
+		linecounter++;
 		collect_bss(line);
 	}
 	fclose(mainfile);
@@ -728,19 +728,21 @@ writer_data(char line[1024], FILE * outfile)
 void
 write_data(const char *asm_file, const char *out_file)
 {
+	linecounter = 0;
 	FILE           *outfile = fopen(out_file, "ab");
 	if (outfile == NULL) {
 		perror("append out file failed");
 		return;
 	}
 	for (int i = 0; i < imported_count; i++) {
+		linecounter = 0;
 		FILE           *imported_file = fopen(imported_files[i], "r");
 		if (imported_file == NULL) {
 			perror("Imported file error");
 			return;
 		}
 		char 		line     [1024];
-		while (fgets(line, sizeof(line), imported_file)) {
+		while (fgets(line, sizeof(line), imported_file)) {	
 			collect_data(line);
 		}
 		fclose(imported_file);
@@ -763,6 +765,7 @@ write_data(const char *asm_file, const char *out_file)
 		}
 		char 		line     [1024];
 		while (fgets(line, sizeof(line), imported_file)) {
+			linecounter++;
 			if (writer_data(line, outfile) == -1) {
 				continue;
 			}
@@ -771,6 +774,7 @@ write_data(const char *asm_file, const char *out_file)
 	}
 	mainfile = fopen(asm_file, "r");
 	while (fgets(line, sizeof(line), mainfile)) {
+		linecounter++;
 		if (writer_data(line, outfile) == -1) {
 			continue;
 		}
@@ -842,12 +846,14 @@ writer_code(char line[1024], FILE * outfile)
 void
 write_code(const char *asm_file, const char *out_file)
 {
+	linecounter = 0;
 	FILE           *outfile = fopen(out_file, "ab");
 	if (outfile == NULL) {
 		perror("append out file failed");
 		return;
 	}
 	for (int i = 0; i < imported_count; i++) {
+		linecounter = 0;
 		FILE           *imported_file = fopen(imported_files[i], "r");
 		if (imported_file == NULL) {
 			perror("Imported file error");
@@ -855,7 +861,7 @@ write_code(const char *asm_file, const char *out_file)
 		}
 		char 		line     [1024];
 
-		while (fgets(line, sizeof(line), imported_file)) {
+		while (fgets(line, sizeof(line), imported_file)) {	
 			collect_code(line);
 		}
 		fclose(imported_file);
@@ -867,7 +873,7 @@ write_code(const char *asm_file, const char *out_file)
 	}
 	char 		line     [1024];
 
-	while (fgets(line, sizeof(line), mainfile)) {
+	while (fgets(line, sizeof(line), mainfile)) {	
 		collect_code(line);
 	}
 	for (int i = 0; i < imported_count; i++) {
@@ -878,6 +884,7 @@ write_code(const char *asm_file, const char *out_file)
 		}
 		char 		line     [1024];
 		while (fgets(line, sizeof(line), imported_file)) {
+			linecounter++;
 			writer_code(line, outfile);
 		}
 		fclose(imported_file);
@@ -894,6 +901,7 @@ write_code(const char *asm_file, const char *out_file)
 		return;
 	}
 	while (fgets(line, sizeof(line), mainfile)) {
+		linecounter++;
 		writer_code(line, outfile);
 	}
 	refresh_header(out_file);

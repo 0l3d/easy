@@ -19,5 +19,4 @@ write:
   mov 1, r0 
   mov msg, r1 
   mov 15, r2
-  syscall 1
-   
+  syscall 1  
