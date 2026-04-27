@@ -1,7 +1,9 @@
 # EASY64
 
-Simple cpu architecture in C.
-
+Simple cpu architecture in C.  
+  
+Wiki: [Easy64 Wiki](https://man.sr.ht/~oled/easy)
+  
 ## Features
 
 - Simple and fast CPU architecture
