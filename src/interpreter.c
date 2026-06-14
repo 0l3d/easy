@@ -608,7 +608,7 @@ interpret_easy64(const char *binname)
 				uint8_t 	dst_acc = get_access(instrc.dst);
 				uint8_t 	src_reg = get_index(instrc.src);
 				uint8_t 	src_acc = get_access(instrc.src);
-
+				
 				uint64_t 	addr = read_reg(src_reg, src_acc);
 				if (regsc[src_reg].type != PTR) {
 					printf("LOAD: Invalid pointer access, REGISTER ISN'T POINTER\n");

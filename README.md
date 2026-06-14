@@ -1,9 +1,9 @@
 # EASY64
 
-Simple cpu architecture in C.  
-  
-Wiki: [Easy64 Wiki](https://man.sr.ht/~oled/easy)
-  
+Simple cpu architecture in C.
+
+Wiki: [Easy64 Wiki](https://github.com/0l3d/easy/wiki/Easy64-Wiki-Home)
+
 ## Features
 
 - Simple and fast CPU architecture
@@ -49,9 +49,9 @@ start:       # start label
 ./easy -i a.out
 ```
 
-# Portability 
-Check the **"src/portability.h"**
+# Portability
 
+Check the **"src/portability.h"**
 
 # License
 

@@ -1,8 +1,7 @@
 section data
-  str ascii "Hello, World!" # ascii -> Hello, World!\0
+  str ascii "Hello, World!" 0 # ascii -> Hello, World!\0
 
 section code 
-start: 
   mov str, r0   # r0 = *ascii
   mov 0, r1     # r1 = 0
 
