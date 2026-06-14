@@ -2,7 +2,7 @@
 
 Simple cpu architecture in C.
 
-Wiki: [Easy64 Wiki](https://github.com/0l3d/easy/wiki/Easy64-Wiki-Home)
+Wiki: [Easy64 Wiki](https://github.com/0l3d/easy/wiki)
 
 ## Features
 
