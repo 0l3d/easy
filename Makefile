@@ -7,8 +7,8 @@ SOURCES = ./src/interpreter.c \
 
 OBJECTS = ${SOURCES:.c=.o}
 
-BASE_CFLAGS = -g -O2 -march=native
 LDFLAGS =
+CFLAGS  = -g
 
 NOR_FLAGS = ${BASE_CFLAGS}
 

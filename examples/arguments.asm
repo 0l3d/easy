@@ -1,34 +1,22 @@
-# ARGUMENTS EXAMPLE
-# FOR LINUX.
-section bss 
-    arguments reb 1024
-
-section data
-    args ascii "/proc/self/cmdline" 0
-    return ascii 10
-
-section code 
-getargs:
-    # open
-    mov args, r0
-    mov 0, r1 
-    syscall 2
-
-    # read
-    mov r6, r0 
-    mov arguments, r1 
-    mov 1024, r2 
-    syscall 0
-    mov r6, r11
-
-    # write
-    mov 1, r0 
-    mov arguments, r1 
-    mov 1024, r2 
-    syscall 1
-
-    # just \n
-    mov 1, r0
-    mov return, r1 
-    mov 1, r2
-    syscall 1
+# EMULATOR BASED ARGUMENT PARSING
+# WORKS ON EVERYPLATFORM (NOT ONLY LINUX)
+section data 
+  ascik ascii "Hello, World!" 0 # ignore this.
+  # safe way to get arguments:
+  arguments ascii 
+section code
+entry main 
+get_args_from_stack:
+  pop r1 # get argv raw string from stack.
+  # or safe way:
+  # mov arguments, r1 
+  ret
+main:
+  mov 1, r0   # stdout
+  mov 100, r2 # len = 100
+runner: 
+  call get_args_from_stack 
+  syscall 1
+  # example input: ./easy -i <filename> -a "--help"
+  # example output: --help
+  # 'cause im only writing, not parsing in this example.
