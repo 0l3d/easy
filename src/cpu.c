@@ -44,8 +44,12 @@ int main(int argc, char **argv) {
   }
 
   if (interpret == 1 && compile == 0) {
-    interpret_easy64(binfile, arguments);
-    free(binfile);
+    if (binfile == NULL) {
+      printf("Need an argument -i: Undefined file.");
+    } else {
+      interpret_easy64(binfile, arguments);
+      free(binfile);
+    }
     if (arguments != NULL) {
       free(arguments);
     }
@@ -56,7 +60,7 @@ int main(int argc, char **argv) {
       output_name = strdup("a.out");
     }
     if (compile_file == NULL) {
-      printf("Need an argument -i: Undefined file.");
+      printf("Need an argument -c: Undefined file.");
       return 1;
     }
     parser(compile_file, output_name);
