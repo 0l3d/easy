@@ -127,6 +127,26 @@ void write_reg(uint8_t idx, RegAccessType access, uint64_t val) {
   }
 }
 
+size_t access_size(RegAccessType acc) {
+  switch (acc) {
+  case REG64_FULL:
+    return 8;
+
+  case REG32_LOW:
+  case REG32_HIGH:
+    return 4;
+
+  case REG16_LOW:
+  case REG16_MIDLOW:
+  case REG16_MIDHIGH:
+  case REG16_HIGH:
+    return 2;
+
+  default:
+    return 1;
+  }
+}
+
 uint8_t get_index(uint16_t operand) { return operand & 0x3F; }
 
 uint8_t get_access(uint16_t operand) { return (operand >> 6) & 0x3F; }
@@ -425,16 +445,19 @@ void interpret_easy64(const char *binname, char *arguments_string) {
       }
       break;
     case OPCODE_PUSH: {
-      if (instrc.dst == 0xFF) {
-        memory[cpu.reg[0].u64] = instrc.imm64;
-      } else {
-        uint8_t src_reg = get_index(instrc.dst);
-        uint8_t src_acc = get_access(instrc.dst);
-        uint64_t val = read_reg(src_reg, src_acc);
-        memory[cpu.reg[0].u64] = val;
-      }
+      uint64_t val;
 
-      cpu.reg[0].u64++;
+      uint8_t reg = get_index(instrc.dst);
+      uint8_t acc = get_access(instrc.dst);
+
+      size_t sz = access_size((RegAccessType)acc);
+
+      val = read_reg(reg, acc);
+
+      memcpy(&memory[cpu.reg[0].u64], &val, sz);
+
+      cpu.reg[0].u64 += sz;
+
       break;
     }
     case OPCODE_SYSCALL: {
@@ -460,13 +483,18 @@ void interpret_easy64(const char *binname, char *arguments_string) {
     case OPCODE_SSDP: {
     }
     case OPCODE_POP: {
-      uint8_t dst_reg = get_index(instrc.dst);
-      uint8_t dst_acc = get_access(instrc.dst);
+      uint8_t reg = get_index(instrc.dst);
+      uint8_t acc = get_access(instrc.dst);
 
-      uint64_t val = memory[cpu.reg[0].u64];
-      write_reg(dst_reg, dst_acc, val);
+      size_t sz = access_size((RegAccessType)acc);
 
-      cpu.reg[0].u64--;
+      cpu.reg[0].u64 -= sz;
+      uint64_t val = 0;
+
+      memcpy(&val, &memory[cpu.reg[0].u64], sz);
+
+      write_reg(reg, acc, val);
+
       break;
     }
 
