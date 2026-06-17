@@ -63,7 +63,10 @@ int main(int argc, char **argv) {
       printf("Need an argument -c: Undefined file.");
       return 1;
     }
-    parser(compile_file, output_name);
+    int no_kernel = 0;
+    if (arguments != NULL && strcmp(arguments, "nokernel") == 0)
+      no_kernel = 1;
+    parser(compile_file, output_name, no_kernel);
     free(compile_file);
     free(output_name);
   }

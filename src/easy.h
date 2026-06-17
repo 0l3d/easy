@@ -1,28 +1,29 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define NUM_REGS 20
-#define MEMORY_SIZE 65536
-#define ZMEMORY_SIZE 300
-
-extern uint8_t memory[MEMORY_SIZE];
+#define MAX_REGS 20
 
 typedef struct {
   int section_data;
   int section_bss;
   int section_code;
-  int bss_count;
+  int bss_size;
   int data_size;
   int entry_start_point;
 } BinaryHeader;
 
-typedef enum {
-  VAL,
-  PTR,
-} RegType;
+typedef struct {
+  int mode;
+  int mem_s;
+  int mem_e;
+  int disk_s;
+  int disk_e;
+  int keyboard;
+  int mouse;
+  int usb_dev;
+} CPU_SL;
 
 typedef struct {
-  RegType type;
   union {
     uint64_t u64;
     double f64;
@@ -43,6 +44,11 @@ typedef struct {
     };
   };
 } Register64;
+
+typedef struct {
+  Register64 reg[MAX_REGS];
+  CPU_SL sl;
+} CPU;
 
 typedef enum {
   REG64_FULL,
@@ -71,7 +77,7 @@ typedef struct {
 
 typedef enum { SECTION_CODE, SECTION_DATA, SECTION_BSS } Section;
 
-typedef enum { LABEL_TYPE_CODE, LABEL_TYPE_DATA } LabelType;
+typedef enum { LABEL_TYPE_CODE, LABEL_TYPE_DATA, LABEL_TYPE_BSS } LabelType;
 
 typedef enum {
   DATA_TYPE_RP,
@@ -154,7 +160,11 @@ typedef enum {
   OPCODE_SYSCALL = 0x23,
   OPCODE_LOAD = 0x24,
   OPCODE_STORE = 0x25,
+  OPCODE_INB = 0x26,
+  OPCODE_OUTB = 0x27,
+  OPCODE_CSL = 0x28,
+  OPCODE_SSDP = 0x29,
 } Opcode;
 
-void parser(const char *asm_file, const char *out_file);
+void parser(const char *asm_file, const char *out_file, int no_kernel_mode);
 void interpret_easy64(const char *binname, char *arguments_string);
