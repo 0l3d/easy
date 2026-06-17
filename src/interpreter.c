@@ -456,7 +456,7 @@ void interpret_easy64(const char *binname, char *arguments_string) {
 
       memcpy(&memory[cpu.reg[0].u64], &val, sz);
 
-      cpu.reg[0].u64 += sz;
+      cpu.reg[0].u64 -= sz;
 
       break;
     }
@@ -488,7 +488,7 @@ void interpret_easy64(const char *binname, char *arguments_string) {
 
       size_t sz = access_size((RegAccessType)acc);
 
-      cpu.reg[0].u64 -= sz;
+      cpu.reg[0].u64 += sz;
       uint64_t val = 0;
 
       memcpy(&val, &memory[cpu.reg[0].u64], sz);
