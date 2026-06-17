@@ -236,7 +236,7 @@ void def_operants(char **tokenized, Instruction *instrc, uint8_t opcode) {
             return;
           }
         }
-        instrc->src = 0xAD;
+        instrc->src = 0xFF;
         instrc->imm64 = addr;
       }
     } else {
@@ -333,7 +333,7 @@ void revdef_operants(char **tokenized, Instruction *instrc, uint8_t opcode) {
           return;
         }
       }
-      instrc->dst = 0xAD;
+      instrc->dst = 0xFF;
       instrc->imm64 = addr;
     } else {
       instrc->dst = en_registers(tokenized[3]);

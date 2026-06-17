@@ -14,8 +14,8 @@
 #define EMULATED_DISK_SIZE 524288
 
 // PRIVATE REGS EMULATION
-int syscall_decoder_position = 0;
-int disk_index_position = 0;
+uint64_t syscall_decoder_position = 0;
+uint64_t disk_index_position = 0;
 
 // PORTS
 #define DISK_INDEX 9
@@ -147,13 +147,22 @@ void interpret_easy64(const char *binname, char *arguments_string) {
   }
   memset(cpu.reg, 0, sizeof(cpu.reg));
 
-  fseek(binfile, 0, SEEK_END);
-  long size = ftell(binfile);
-  rewind(binfile);
-
   uint64_t pc = 0;
 
-  fread(&memory, 1, size, binfile);
+  if (arguments_string != NULL) {
+    FILE *kernel_file = fopen(arguments_string, "rb");
+    if (binfile == NULL) {
+      perror("cpu is failed to open binary file");
+      return;
+    }
+    fseek(kernel_file, 0, SEEK_END);
+    long size = ftell(kernel_file);
+    rewind(kernel_file);
+    fread(&disk, 1, size, kernel_file);
+    fclose(kernel_file);
+  }
+
+  fread(&memory, 1, 1024, binfile);
 
   while (pc < EMULATED_MEMORY_SIZE) {
     Instruction instrc;
@@ -161,10 +170,6 @@ void interpret_easy64(const char *binname, char *arguments_string) {
     switch (instrc.opcode) {
     case OPCODE_MOV:
       if (instrc.src == 0xFF) {
-        uint8_t dst_reg = get_index(instrc.dst);
-        uint8_t access_type = get_access(instrc.dst);
-        write_reg(dst_reg, access_type, instrc.imm64);
-      } else if (instrc.src == 0xAD) {
         uint8_t dst_reg = get_index(instrc.dst);
         uint8_t access_type = get_access(instrc.dst);
         write_reg(dst_reg, access_type, instrc.imm64);
@@ -435,9 +440,21 @@ void interpret_easy64(const char *binname, char *arguments_string) {
     case OPCODE_SYSCALL: {
     }
     case OPCODE_INB: {
-    }
+      if (instrc.imm64 == 10) {
+        uint8_t dst_reg = get_index(instrc.dst);
+        uint8_t access_type = get_access(instrc.dst);
+        write_reg(dst_reg, access_type, disk[disk_index_position]);
+        disk_index_position++;
+      }
+    } break;
     case OPCODE_OUTB: {
-    }
+      if (instrc.imm64 == 9) {
+        uint8_t dst_reg = get_index(instrc.dst);
+        uint8_t dst_acc = get_access(instrc.dst);
+        uint64_t val = read_reg(dst_reg, dst_acc);
+        disk_index_position = val;
+      }
+    } break;
     case OPCODE_CSL: {
     }
     case OPCODE_SSDP: {
