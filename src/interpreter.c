@@ -471,7 +471,7 @@ void interpret_easy64(const char *binname, char *arguments_string) {
     }
 
     case OPCODE_JMP:
-      if (instrc.imm64 == 0) {
+      if (instrc.src != 0xFF) {
         uint8_t dst_reg = get_index(instrc.dst);
         uint8_t dst_acc = get_access(instrc.dst);
         uint64_t val = read_reg(dst_reg, dst_acc);

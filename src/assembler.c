@@ -276,10 +276,11 @@ void lbl_operand(char **tokens, Instruction *instrc, uint8_t opcode) {
     if (isalpha(tokens[1][0])) {
       instrc->dst = en_registers(tokens[1]);
       instrc->imm64 = 0;
-    } else {
-      printf(
-          "Got an error Line: %d, Sitation: 'undefined label or register' %s\n",
-          linecounter, label);
+      if (instrc->dst == 255) {
+        printf("Got an error Line: %d, Sitation: 'undefined label or register' "
+               "%s\n",
+               linecounter, label);
+      }
     }
   } else {
     instrc->imm64 = label_addr - curr_byte_offset;
