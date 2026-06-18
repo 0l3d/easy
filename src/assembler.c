@@ -438,7 +438,10 @@ int opcode(char *tokenized[], Instruction *instrc) {
     lbl_operand(tokenized, instrc, OPCODE_SSDP);
     return 1;
   } else if (strcmp(tokenized[0], "syscall") == 0) {
-    nlbl_operants(tokenized, instrc, OPCODE_SYSCALL);
+    nothing_operants(instrc, OPCODE_SYSCALL);
+    return 1;
+  } else if (strcmp(tokenized[0], "info") == 0) {
+    nlbl_operants(tokenized, instrc, OPCODE_INFO);
     return 1;
   } else if (strcmp(tokenized[0], "csl") == 0) {
     nlbl_operants(tokenized, instrc, OPCODE_CSL);

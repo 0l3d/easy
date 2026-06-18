@@ -164,6 +164,7 @@ typedef enum {
   OPCODE_OUTB = 0x27,
   OPCODE_CSL = 0x28,
   OPCODE_SSDP = 0x29,
+  OPCODE_INFO = 0x30,
 } Opcode;
 
 void parser(const char *asm_file, const char *out_file, int no_kernel_mode);
