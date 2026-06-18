@@ -13,6 +13,8 @@
 #define EMULATED_MEMORY_SIZE 131072
 // DISK EMULATION SIZE
 #define EMULATED_DISK_SIZE 524288
+// ROM
+#define ROM_SIZE 4096
 
 // PRIVATE REGS EMULATION
 uint64_t syscall_decoder_position = 0;
@@ -533,6 +535,15 @@ void interpret_easy64(const char *binname, char *arguments_string) {
       break;
     }
     case OPCODE_SYSCALL: {
+      cpu.reg[1].u64 = pc;
+      pc = syscall_decoder_position;
+      cpu.sl.mode = 0;
+      continue;
+    }
+    case OPCODE_SYSRET: {
+      pc = cpu.reg[1].u64;
+      cpu.sl.mode = 1;
+      continue;
     }
     case OPCODE_INB: {
       uint8_t dst_reg = get_index(instrc.dst);
@@ -565,6 +576,15 @@ void interpret_easy64(const char *binname, char *arguments_string) {
     case OPCODE_CSL: {
     }
     case OPCODE_SSDP: {
+      if (instrc.src != 0xFF) {
+        uint8_t dst_reg = get_index(instrc.dst);
+        uint8_t dst_acc = get_access(instrc.dst);
+        uint64_t val = read_reg(dst_reg, dst_acc);
+        syscall_decoder_position = val;
+      } else {
+        syscall_decoder_position = pc + instrc.imm64;
+      }
+      continue;
     }
     case OPCODE_POP: {
       uint8_t reg = get_index(instrc.dst);

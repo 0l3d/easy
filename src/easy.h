@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define MAX_REGS 20
+#define MAX_REGS 30
 
 typedef struct {
   int section_data;
@@ -13,14 +13,15 @@ typedef struct {
 } BinaryHeader;
 
 typedef struct {
-  int mode;
-  int mem_s;
-  int mem_e;
-  int disk_s;
-  int disk_e;
-  int keyboard;
-  int mouse;
-  int usb_dev;
+  uint8_t mode;
+  uint64_t mem_s;
+  uint64_t mem_e;
+  uint64_t disk_s;
+  uint64_t disk_e;
+  uint64_t interrupt_pos;
+  uint64_t keyboard;
+  uint64_t mouse;
+  uint64_t usb_dev;
 } CPU_SL;
 
 typedef struct {
@@ -165,6 +166,7 @@ typedef enum {
   OPCODE_CSL = 0x28,
   OPCODE_SSDP = 0x29,
   OPCODE_INFO = 0x30,
+  OPCODE_SYSRET = 0x31,
 } Opcode;
 
 void parser(const char *asm_file, const char *out_file, int no_kernel_mode);

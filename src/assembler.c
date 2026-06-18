@@ -204,8 +204,16 @@ int get_bss_addr(const char *name) {
   }
   return -1;
 }
+int get_label_addr(const char *name) {
+  for (int i = 0; i < label_count; i++) {
+    if (strcmp(labels[i].name, name) == 0) {
+      return labels[i].address;
+    }
+  }
+  return -1;
+}
 
-void def_operants(char **tokenized, Instruction *instrc, uint8_t opcode) {
+void def_operand(char **tokenized, Instruction *instrc, uint8_t opcode) {
 
   if (tokenized[2][0] != ',') {
     printf("Got an error on Line %d, Situation: ',' undefined on %s\n",
@@ -231,9 +239,13 @@ void def_operants(char **tokenized, Instruction *instrc, uint8_t opcode) {
         if (addr == -1) {
           addr = get_bss_addr(tokenized[1]);
           if (addr == -1) {
-            printf("Got an error Line: %d, Situation: 'undefined label' on %s",
-                   linecounter, tokenized[0]);
-            return;
+            addr = get_label_addr(tokenized[1]);
+            if (addr == -1) {
+              printf(
+                  "Got an error Line: %d, Situation: 'undefined label' on %s",
+                  linecounter, tokenized[0]);
+              return;
+            }
           }
         }
         instrc->src = 0xFF;
@@ -253,15 +265,6 @@ void def_operants(char **tokenized, Instruction *instrc, uint8_t opcode) {
     instrc->dst = 0xFF;
     instrc->imm64 = (uint64_t)strtol(tokenized[3], NULL, 0);
   }
-}
-
-int get_label_addr(const char *name) {
-  for (int i = 0; i < label_count; i++) {
-    if (strcmp(labels[i].name, name) == 0) {
-      return labels[i].address;
-    }
-  }
-  return -1;
 }
 
 int byte_offset = 0;
@@ -313,7 +316,7 @@ void nlblnorg_operants(char **tokens, Instruction *instrc, uint8_t opcode) {
   instrc->src = 0xFF;
 }
 
-void revdef_operants(char **tokenized, Instruction *instrc, uint8_t opcode) {
+void revdef_operand(char **tokenized, Instruction *instrc, uint8_t opcode) {
   if (tokenized[2][0] != ',') {
     printf("Got an error on Line %d, Situation: ',' undefined on %s\n",
            linecounter, tokenized[0]);
@@ -351,43 +354,43 @@ int opcode(char *tokenized[], Instruction *instrc) {
     nothing_operants(instrc, OPCODE_NOP);
     return 1;
   } else if (strcmp(tokenized[0], "mov") == 0) {
-    def_operants(tokenized, instrc, OPCODE_MOV);
+    def_operand(tokenized, instrc, OPCODE_MOV);
     return 1;
   } else if (strcmp(tokenized[0], "inb") == 0) {
-    def_operants(tokenized, instrc, OPCODE_INB);
+    def_operand(tokenized, instrc, OPCODE_INB);
     return 1;
   } else if (strcmp(tokenized[0], "outb") == 0) {
-    def_operants(tokenized, instrc, OPCODE_OUTB);
+    def_operand(tokenized, instrc, OPCODE_OUTB);
     return 1;
   } else if (strcmp(tokenized[0], "add") == 0) {
-    def_operants(tokenized, instrc, OPCODE_ADD);
+    def_operand(tokenized, instrc, OPCODE_ADD);
     return 1;
   } else if (strcmp(tokenized[0], "sub") == 0) {
-    def_operants(tokenized, instrc, OPCODE_SUB);
+    def_operand(tokenized, instrc, OPCODE_SUB);
     return 1;
   } else if (strcmp(tokenized[0], "mul") == 0) {
-    def_operants(tokenized, instrc, OPCODE_MUL);
+    def_operand(tokenized, instrc, OPCODE_MUL);
     return 1;
   } else if (strcmp(tokenized[0], "div") == 0) {
-    def_operants(tokenized, instrc, OPCODE_DIV);
+    def_operand(tokenized, instrc, OPCODE_DIV);
     return 1;
   } else if (strcmp(tokenized[0], "and") == 0) {
-    def_operants(tokenized, instrc, OPCODE_AND);
+    def_operand(tokenized, instrc, OPCODE_AND);
     return 1;
   } else if (strcmp(tokenized[0], "or") == 0) {
-    def_operants(tokenized, instrc, OPCODE_OR);
+    def_operand(tokenized, instrc, OPCODE_OR);
     return 1;
   } else if (strcmp(tokenized[0], "xor") == 0) {
-    def_operants(tokenized, instrc, OPCODE_XOR);
+    def_operand(tokenized, instrc, OPCODE_XOR);
     return 1;
   } else if (strcmp(tokenized[0], "not") == 0) {
-    def_operants(tokenized, instrc, OPCODE_NOT);
+    def_operand(tokenized, instrc, OPCODE_NOT);
     return 1;
   } else if (strcmp(tokenized[0], "shl") == 0) {
-    def_operants(tokenized, instrc, OPCODE_SHL);
+    def_operand(tokenized, instrc, OPCODE_SHL);
     return 1;
   } else if (strcmp(tokenized[0], "shr") == 0) {
-    def_operants(tokenized, instrc, OPCODE_SHR);
+    def_operand(tokenized, instrc, OPCODE_SHR);
     return 1;
   } else if (strcmp(tokenized[0], "jmp") == 0) {
     lbl_operand(tokenized, instrc, OPCODE_JMP);
@@ -405,13 +408,16 @@ int opcode(char *tokenized[], Instruction *instrc) {
     lbl_operand(tokenized, instrc, OPCODE_JG);
     return 1;
   } else if (strcmp(tokenized[0], "cmp") == 0) {
-    def_operants(tokenized, instrc, OPCODE_CMP);
+    def_operand(tokenized, instrc, OPCODE_CMP);
     return 1;
   } else if (strcmp(tokenized[0], "call") == 0) {
     lbl_operand(tokenized, instrc, OPCODE_CALL);
     return 1;
   } else if (strcmp(tokenized[0], "ret") == 0) {
     nothing_operants(instrc, OPCODE_RET);
+    return 1;
+  } else if (strcmp(tokenized[0], "sysret") == 0) {
+    nothing_operants(instrc, OPCODE_SYSRET);
     return 1;
   } else if (strcmp(tokenized[0], "push") == 0) {
     nlbl_operants(tokenized, instrc, OPCODE_PUSH);
@@ -447,10 +453,10 @@ int opcode(char *tokenized[], Instruction *instrc) {
     nlbl_operants(tokenized, instrc, OPCODE_CSL);
     return 1;
   } else if (strcmp(tokenized[0], "load") == 0) {
-    def_operants(tokenized, instrc, OPCODE_LOAD);
+    def_operand(tokenized, instrc, OPCODE_LOAD);
     return 1;
   } else if (strcmp(tokenized[0], "store") == 0) {
-    revdef_operants(tokenized, instrc, OPCODE_STORE);
+    revdef_operand(tokenized, instrc, OPCODE_STORE);
     return 1;
   }
   return 0;
