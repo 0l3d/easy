@@ -1,12 +1,13 @@
 #include "easy.h"
+#include <SDL2/SDL.h>
 #include <inttypes.h>
 #include <iso646.h>
+#include <pthread.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <sys/syscall.h>
-#include <sys/types.h>
 
 // MEMORY EMULATION SIZE
 #define EMULATED_MEMORY_SIZE 131072
@@ -22,7 +23,11 @@ uint64_t disk_index_position = 0;
 #define DISK_BYTE 10
 #define KEYBOARD 11
 #define MOUSE 12
-#define USB_DEVICES 14
+#define MEMORY_END 13
+#define FRAMEBUFFER_START 14
+#define FRAMEBUFFER_SIZE 15
+#define DISK_END 16
+#define USB_DEVICES 20
 // PORTS
 
 // CPU COMPARING FLAGS
@@ -155,7 +160,74 @@ uint8_t get_main_type(uint16_t operand) { return (operand >> 12) & 0xF; }
 
 void *resolve_ptr(uint64_t ptr) { return memory + ptr; };
 
+struct Color {
+  uint8_t r;
+  uint8_t g;
+  uint8_t b;
+};
+
+int emulator_running = 0;
+
+int WINDOW_WIDTH = 160;
+int WINDOW_HEIGHT = 120;
+int framebuffer_size = 0;
+int starting_framebuffer_pos = 0;
+
+pthread_mutex_t fb_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+void *create_framebuffer_window(
+    void *No_One_Know_Where_He_Came_From_He_Never_Knew_Himself) {
+  SDL_Event event;
+  SDL_Renderer *renderer;
+  SDL_Window *window;
+  framebuffer_size = WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(struct Color);
+  starting_framebuffer_pos = EMULATED_MEMORY_SIZE - framebuffer_size;
+
+  uint8_t *local_buffer;
+  local_buffer = malloc(framebuffer_size);
+
+  SDL_Init(SDL_INIT_VIDEO);
+  SDL_CreateWindowAndRenderer(WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_SHOWN,
+                              &window, &renderer);
+  SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+  SDL_RenderClear(renderer);
+
+  while (emulator_running) {
+    while (SDL_PollEvent(&event)) {
+      if (event.type == SDL_QUIT)
+        emulator_running = 0;
+    }
+    pthread_mutex_lock(&fb_mutex);
+    memcpy(local_buffer, &memory[starting_framebuffer_pos], framebuffer_size);
+    pthread_mutex_unlock(&fb_mutex);
+
+    int i = 0;
+    SDL_RenderClear(renderer);
+    for (int y = 0; y < WINDOW_HEIGHT; y++) {
+      for (int x = 0; x < WINDOW_WIDTH; x++) {
+        struct Color color;
+        uint8_t r = local_buffer[i++];
+        uint8_t g = local_buffer[i++];
+        uint8_t b = local_buffer[i++];
+
+        SDL_SetRenderDrawColor(renderer, r, g, b, 255);
+        SDL_RenderDrawPoint(renderer, x, y);
+      }
+    }
+
+    pthread_mutex_unlock(&fb_mutex);
+    SDL_RenderPresent(renderer);
+    SDL_Delay(16);
+  }
+
+  SDL_DestroyRenderer(renderer);
+  SDL_DestroyWindow(window);
+  SDL_Quit();
+  return 0;
+}
+
 void interpret_easy64(const char *binname, char *arguments_string) {
+  pthread_t video_thread;
   // FIRMWARE LOADS SL0:
   cpu.sl.mode = 0;
   // STACK POINTER: r0
@@ -168,6 +240,7 @@ void interpret_easy64(const char *binname, char *arguments_string) {
   memset(cpu.reg, 0, sizeof(cpu.reg));
 
   uint64_t pc = 0;
+  emulator_running = 1;
 
   if (arguments_string != NULL) {
     FILE *kernel_file = fopen(arguments_string, "rb");
@@ -181,10 +254,9 @@ void interpret_easy64(const char *binname, char *arguments_string) {
     fread(&disk, 1, size, kernel_file);
     fclose(kernel_file);
   }
-
+  pthread_create(&video_thread, NULL, create_framebuffer_window, NULL);
   fread(&memory, 1, 1024, binfile);
-
-  while (pc < EMULATED_MEMORY_SIZE) {
+  while (emulator_running == 1) {
     Instruction instrc;
     memcpy(&instrc, &memory[pc], sizeof(Instruction));
     switch (instrc.opcode) {
@@ -463,26 +535,27 @@ void interpret_easy64(const char *binname, char *arguments_string) {
     case OPCODE_SYSCALL: {
     }
     case OPCODE_INB: {
-      if (instrc.imm64 == 9) {
-        uint8_t dst_reg = get_index(instrc.dst);
-        uint8_t access_type = get_access(instrc.dst);
+      uint8_t dst_reg = get_index(instrc.dst);
+      uint8_t access_type = get_access(instrc.dst);
+      if (instrc.imm64 == DISK_INDEX) {
         write_reg(dst_reg, access_type, disk_index_position);
-      }
-      if (instrc.imm64 == 10) {
-        uint8_t dst_reg = get_index(instrc.dst);
-        uint8_t access_type = get_access(instrc.dst);
+      } else if (instrc.imm64 == DISK_BYTE) {
         write_reg(dst_reg, access_type, disk[disk_index_position]);
         disk_index_position++;
+      } else if (instrc.imm64 == FRAMEBUFFER_START) {
+        write_reg(dst_reg, access_type, starting_framebuffer_pos);
+      } else if (instrc.imm64 == FRAMEBUFFER_SIZE) {
+        write_reg(dst_reg, access_type,
+                  WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(struct Color));
       }
     } break;
     case OPCODE_OUTB: {
-      if (instrc.imm64 == 9) {
+      if (instrc.imm64 == DISK_INDEX) {
         uint8_t dst_reg = get_index(instrc.dst);
         uint8_t dst_acc = get_access(instrc.dst);
         uint64_t val = read_reg(dst_reg, dst_acc);
         disk_index_position = val;
-      }
-      if (instrc.imm64 == 10) {
+      } else if (instrc.imm64 == DISK_BYTE) {
         uint8_t dst_reg = get_index(instrc.dst);
         uint8_t dst_acc = get_access(instrc.dst);
         uint64_t val = read_reg(dst_reg, dst_acc);
@@ -523,12 +596,12 @@ void interpret_easy64(const char *binname, char *arguments_string) {
     case OPCODE_CALL: {
       uint64_t ret = pc + sizeof(Instruction);
       memcpy(&memory[cpu.reg[0].u64], &ret, sizeof(uint64_t));
-      cpu.reg[0].u64 += sizeof(uint64_t);
+      cpu.reg[0].u64 -= sizeof(uint64_t);
       pc = pc + instrc.imm64;
       continue;
     }
     case OPCODE_RET: {
-      cpu.reg[0].u64 -= sizeof(uint64_t);
+      cpu.reg[0].u64 += sizeof(uint64_t);
       uint64_t ret;
       memcpy(&ret, &memory[cpu.reg[0].u64], sizeof(uint64_t));
       pc = ret;
@@ -537,6 +610,7 @@ void interpret_easy64(const char *binname, char *arguments_string) {
     case OPCODE_NOP:
       break;
     case OPCODE_HLT:
+      emulator_running = 0;
       fclose(binfile);
       return;
     case OPCODE_PRINT: {
@@ -591,9 +665,9 @@ void interpret_easy64(const char *binname, char *arguments_string) {
     default:
       continue;
     }
-
     pc += sizeof(Instruction);
   }
 
+  pthread_join(video_thread, NULL);
   fclose(binfile);
 }

@@ -7,7 +7,7 @@ SOURCES = ./src/interpreter.c \
 
 OBJECTS = ${SOURCES:.c=.o}
 
-LDFLAGS =
+LDFLAGS = -lSDL2
 CFLAGS  = -g
 
 NOR_FLAGS = ${BASE_CFLAGS}
