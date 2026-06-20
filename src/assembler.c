@@ -96,8 +96,8 @@ int section(char **tokens) {
 }
 
 void labelsp(const char *label_name, int pos, LabelType type) {
-  if (label_count == 300) {
-    printf("MAXIMUM LABEL : 300 ");
+  if (label_count == MAXLABELS) {
+    printf("MAXIMUM LABEL OVERFLOW");
     return;
   }
   strcpy(labels[label_count].name, label_name);
@@ -107,8 +107,8 @@ void labelsp(const char *label_name, int pos, LabelType type) {
 }
 
 void datasp(const char *data_label_name, int pos, DataType type) {
-  if (data_count == 300) {
-    printf("MAXIMUM DATA : 300");
+  if (data_count == DATASIZE) {
+    printf("MAXIMUM DATA OVERFLOW");
     return;
   }
   strcpy(datas[data_count].name, data_label_name);
@@ -118,8 +118,8 @@ void datasp(const char *data_label_name, int pos, DataType type) {
 }
 
 void bsssp(const char *bss_label_name, int pos, BssType type, int size) {
-  if (bss_count == 300) {
-    printf("MAXIMUM BSS : 300");
+  if (bss_count == BSSSIZE) {
+    printf("MAXIMUM BSS OVERFLOW");
     return;
   }
   strcpy(bss[bss_count].name, bss_label_name);
@@ -164,17 +164,17 @@ uint16_t en_registers(const char *reg_name) {
     index = atoi(&reg_name[1]);
     if (strstr(reg_name, "b0"))
       access = REG8_B0;
-    else if (strstr(reg_name, "b1"))
+    else if (strstr(reg_name, "b1")) {
       access = REG8_B1;
-    else if (strstr(reg_name, "b2"))
+    } else if (strstr(reg_name, "b2"))
       access = REG8_B2;
     else if (strstr(reg_name, "b3"))
       access = REG8_B3;
     else if (strstr(reg_name, "b4"))
       access = REG8_B4;
-    else if (strstr(reg_name, "b5"))
+    else if (strstr(reg_name, "b5")) {
       access = REG8_B5;
-    else if (strstr(reg_name, "b6"))
+    } else if (strstr(reg_name, "b6"))
       access = REG8_B6;
     else if (strstr(reg_name, "b7"))
       access = REG8_B7;
@@ -231,7 +231,7 @@ void def_operand(char **tokenized, Instruction *instrc, uint8_t opcode) {
                  linecounter, tokenized[0]);
           return;
         }
-        instrc->src = 0xFF;
+        instrc->src = 0xFFFF;
         instrc->imm64 = tokenized[1][1];
       } else {
         int addr = 0;
@@ -248,21 +248,21 @@ void def_operand(char **tokenized, Instruction *instrc, uint8_t opcode) {
             }
           }
         }
-        instrc->src = 0xFF;
+        instrc->src = 0xFFFF;
         instrc->imm64 = addr;
       }
     } else {
       instrc->src = en_registers(tokenized[1]);
     }
   } else {
-    instrc->src = 0xFF;
+    instrc->src = 0xFFFF;
     instrc->imm64 = (uint64_t)strtol(tokenized[1], NULL, 0);
   }
 
   if (isalpha(tokenized[3][0])) {
     instrc->dst = en_registers(tokenized[3]);
   } else {
-    instrc->dst = 0xFF;
+    instrc->dst = 0xFFFF;
     instrc->imm64 = (uint64_t)strtol(tokenized[3], NULL, 0);
   }
 }
@@ -287,33 +287,33 @@ void lbl_operand(char **tokens, Instruction *instrc, uint8_t opcode) {
     }
   } else {
     instrc->imm64 = label_addr - curr_byte_offset;
-    instrc->src = 0xFF;
+    instrc->src = 0xFFFF;
   }
 }
 
-void nlbl_operants(char **tokens, Instruction *instrc, uint8_t opcode) {
+void nlbl_operands(char **tokens, Instruction *instrc, uint8_t opcode) {
   instrc->opcode = opcode;
   if (isalpha(tokens[1][0])) {
     instrc->dst = en_registers(tokens[1]);
     instrc->imm64 = 0;
   } else {
-    instrc->dst = 0xFF;
+    instrc->dst = 0xFFFF;
     instrc->imm64 = (uint64_t)strtol(tokens[1], NULL, 0);
   }
-  instrc->src = 0xFF;
+  instrc->src = 0xFFFF;
 }
 
-void nothing_operants(Instruction *instrc, uint8_t opcode) {
+void nothing_operands(Instruction *instrc, uint8_t opcode) {
   instrc->opcode = opcode;
-  instrc->dst = 0xFF;
-  instrc->src = 0xFF;
+  instrc->dst = 0xFFFF;
+  instrc->src = 0xFFFF;
 }
 
-void nlblnorg_operants(char **tokens, Instruction *instrc, uint8_t opcode) {
+void nlblnorg_operands(char **tokens, Instruction *instrc, uint8_t opcode) {
   instrc->opcode = opcode;
   instrc->imm64 = (uint64_t)strtol(tokens[1], NULL, 0);
-  instrc->dst = 0xFF;
-  instrc->src = 0xFF;
+  instrc->dst = 0xFFFF;
+  instrc->src = 0xFFFF;
 }
 
 void revdef_operand(char **tokenized, Instruction *instrc, uint8_t opcode) {
@@ -337,11 +337,14 @@ void revdef_operand(char **tokenized, Instruction *instrc, uint8_t opcode) {
           return;
         }
       }
-      instrc->dst = 0xFF;
+      instrc->dst = 0xFFFF;
       instrc->imm64 = addr;
     } else {
       instrc->dst = en_registers(tokenized[3]);
     }
+  } else {
+    instrc->dst = 0xFFFF;
+    instrc->imm64 = (uint64_t)strtol(tokenized[3], NULL, 0);
   }
   instrc->src = en_registers(tokenized[1]);
 }
@@ -351,7 +354,7 @@ int opcode(char *tokenized[], Instruction *instrc) {
     return -1;
   }
   if (strcmp(tokenized[0], "nop") == 0) {
-    nothing_operants(instrc, OPCODE_NOP);
+    nothing_operands(instrc, OPCODE_NOP);
     return 1;
   } else if (strcmp(tokenized[0], "mov") == 0) {
     def_operand(tokenized, instrc, OPCODE_MOV);
@@ -414,28 +417,28 @@ int opcode(char *tokenized[], Instruction *instrc) {
     lbl_operand(tokenized, instrc, OPCODE_CALL);
     return 1;
   } else if (strcmp(tokenized[0], "ret") == 0) {
-    nothing_operants(instrc, OPCODE_RET);
+    nothing_operands(instrc, OPCODE_RET);
     return 1;
   } else if (strcmp(tokenized[0], "sysret") == 0) {
-    nothing_operants(instrc, OPCODE_SYSRET);
+    nothing_operands(instrc, OPCODE_SYSRET);
     return 1;
   } else if (strcmp(tokenized[0], "push") == 0) {
-    nlbl_operants(tokenized, instrc, OPCODE_PUSH);
+    nlbl_operands(tokenized, instrc, OPCODE_PUSH);
     return 1;
   } else if (strcmp(tokenized[0], "pop") == 0) {
-    nlbl_operants(tokenized, instrc, OPCODE_POP);
+    nlbl_operands(tokenized, instrc, OPCODE_POP);
     return 1;
   } else if (strcmp(tokenized[0], "hlt") == 0) {
-    nothing_operants(instrc, OPCODE_HLT);
+    nothing_operands(instrc, OPCODE_HLT);
     return 1;
   } else if (strcmp(tokenized[0], "inc") == 0) {
-    nlbl_operants(tokenized, instrc, OPCODE_INC);
+    nlbl_operands(tokenized, instrc, OPCODE_INC);
     return 1;
   } else if (strcmp(tokenized[0], "dec") == 0) {
-    nlbl_operants(tokenized, instrc, OPCODE_DEC);
+    nlbl_operands(tokenized, instrc, OPCODE_DEC);
     return 1;
   } else if (strcmp(tokenized[0], "print") == 0) {
-    nlbl_operants(tokenized, instrc, OPCODE_PRINT);
+    nlbl_operands(tokenized, instrc, OPCODE_PRINT);
     return 1;
   } else if (strcmp(tokenized[0], "entry") == 0) {
     lbl_operand(tokenized, instrc, OPCODE_ENTRY);
@@ -444,13 +447,13 @@ int opcode(char *tokenized[], Instruction *instrc) {
     lbl_operand(tokenized, instrc, OPCODE_SSDP);
     return 1;
   } else if (strcmp(tokenized[0], "syscall") == 0) {
-    nothing_operants(instrc, OPCODE_SYSCALL);
+    nothing_operands(instrc, OPCODE_SYSCALL);
     return 1;
   } else if (strcmp(tokenized[0], "info") == 0) {
-    nlbl_operants(tokenized, instrc, OPCODE_INFO);
+    nlbl_operands(tokenized, instrc, OPCODE_INFO);
     return 1;
   } else if (strcmp(tokenized[0], "csl") == 0) {
-    nlbl_operants(tokenized, instrc, OPCODE_CSL);
+    nlbl_operands(tokenized, instrc, OPCODE_CSL);
     return 1;
   } else if (strcmp(tokenized[0], "load") == 0) {
     def_operand(tokenized, instrc, OPCODE_LOAD);

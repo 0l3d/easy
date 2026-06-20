@@ -8,11 +8,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 
 // MEMORY EMULATION SIZE
 #define EMULATED_MEMORY_SIZE 131072
 // DISK EMULATION SIZE
 #define EMULATED_DISK_SIZE 524288
+
+// MMU
+#define MEMORY_PAGE_SIZE 512;
+
 // ROM
 #define ROM_SIZE 4096
 
@@ -29,8 +34,11 @@ uint64_t disk_index_position = 0;
 #define FRAMEBUFFER_START 14
 #define FRAMEBUFFER_SIZE 15
 #define DISK_END 16
+#define CLOCK_TIMER_SET 17
 #define USB_DEVICES 20
 // PORTS
+
+// SYSCALL RETURN POS REGISTER: R7
 
 // CPU COMPARING FLAGS
 Flags flags = {0};
@@ -160,7 +168,53 @@ uint8_t get_access(uint16_t operand) { return (operand >> 6) & 0x3F; }
 
 uint8_t get_main_type(uint16_t operand) { return (operand >> 12) & 0xF; }
 
-void *resolve_ptr(uint64_t ptr) { return memory + ptr; };
+// INTERRUPT REGISTER: R2
+// Keeps interrupt function position.
+// When got an interrupt, system go to interrupt function.
+// INTERRUPT ERROR CODE REGISTER: R4
+// INTERRUPT RETURN REGISTER: R7
+CPU_SL get_cpu_sl() {
+  CPU_SL return_val;
+  memcpy(&return_val, &memory[cpu.reg[2].u64], sizeof(CPU_SL));
+  return return_val;
+}
+
+// MMU - Memory Management Unit
+// r6 -> MMU Paging Table Pointer
+// Memory: 512 byte page. Program usable: 511 bytes.
+// Block Layout: 1 Byte Block INFO (IS Free | Executable), 511 Byte usable
+#define FREE 1
+#define EXEC 2
+void *resolve_ptr(uint64_t ptr) {
+  if (cpu.reg[1].b0 == 0) {
+    return memory + ptr;
+  }
+
+  uint64_t addr = cpu.reg[6].u64;
+  uint64_t page_index = ptr / MEMORY_PAGE_SIZE;
+  uint64_t page_size = ptr % MEMORY_PAGE_SIZE;
+
+  uint64_t table_info;
+  memcpy(&table_info, &memory[addr], sizeof(table_info));
+
+  if (table_info >= page_index) {
+    uint64_t page_ind_addr =
+        (page_index * sizeof(uint64_t)) + sizeof(table_info);
+    uint64_t physical_addr;
+    memcpy(&physical_addr, &memory[page_ind_addr], sizeof(page_ind_addr));
+    if (memory[page_ind_addr] & EXEC) {
+      cpu.reg[4].u64 = 15;
+      return NULL;
+    }
+    return memory + physical_addr + page_size;
+  } else {
+    cpu.reg[4].u64 = 14;
+    return NULL;
+  }
+  return NULL;
+}
+
+// MMU - End
 
 struct Color {
   uint8_t r;
@@ -169,6 +223,8 @@ struct Color {
 };
 
 int emulator_running = 0;
+
+uint64_t timer = 0;
 
 int WINDOW_WIDTH = 160;
 int WINDOW_HEIGHT = 120;
@@ -182,8 +238,6 @@ void *create_framebuffer_window(
   SDL_Event event;
   SDL_Renderer *renderer;
   SDL_Window *window;
-  framebuffer_size = WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(struct Color);
-  starting_framebuffer_pos = EMULATED_MEMORY_SIZE - framebuffer_size;
 
   uint8_t *local_buffer;
   local_buffer = malloc(framebuffer_size);
@@ -217,7 +271,6 @@ void *create_framebuffer_window(
       }
     }
 
-    pthread_mutex_unlock(&fb_mutex);
     SDL_RenderPresent(renderer);
     SDL_Delay(16);
   }
@@ -256,6 +309,9 @@ void interpret_easy64(const char *binname, char *arguments_string) {
     fread(&disk, 1, size, kernel_file);
     fclose(kernel_file);
   }
+  framebuffer_size = WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(struct Color);
+  starting_framebuffer_pos = EMULATED_MEMORY_SIZE - framebuffer_size;
+
   pthread_create(&video_thread, NULL, create_framebuffer_window, NULL);
   fread(&memory, 1, 1024, binfile);
   while (emulator_running == 1) {
@@ -263,7 +319,7 @@ void interpret_easy64(const char *binname, char *arguments_string) {
     memcpy(&instrc, &memory[pc], sizeof(Instruction));
     switch (instrc.opcode) {
     case OPCODE_MOV:
-      if (instrc.src == 0xFF) {
+      if (instrc.src == 0xFFFF) {
         uint8_t dst_reg = get_index(instrc.dst);
         uint8_t access_type = get_access(instrc.dst);
         write_reg(dst_reg, access_type, instrc.imm64);
@@ -279,7 +335,7 @@ void interpret_easy64(const char *binname, char *arguments_string) {
     case OPCODE_ADD: {
       uint8_t dst_reg = get_index(instrc.dst);
       uint8_t dst_acc = get_access(instrc.dst);
-      if (instrc.src == 0xFF) {
+      if (instrc.src == 0xFFFF) {
         uint64_t dst_val = read_reg(dst_reg, dst_acc);
         uint64_t result = dst_val + instrc.imm64;
         write_reg(dst_reg, dst_acc, result);
@@ -297,7 +353,7 @@ void interpret_easy64(const char *binname, char *arguments_string) {
       uint8_t dst_reg = get_index(instrc.dst);
       uint8_t dst_acc = get_access(instrc.dst);
 
-      if (instrc.src == 0xFF) {
+      if (instrc.src == 0xFFFF) {
         uint64_t dst_val = read_reg(dst_reg, dst_acc);
         write_reg(dst_reg, dst_acc, dst_val - instrc.imm64);
       } else {
@@ -313,7 +369,7 @@ void interpret_easy64(const char *binname, char *arguments_string) {
       uint8_t dst_reg = get_index(instrc.dst);
       uint8_t dst_acc = get_access(instrc.dst);
 
-      if (instrc.src == 0xFF) {
+      if (instrc.src == 0xFFFF) {
         uint64_t dst_val = read_reg(dst_reg, dst_acc);
         write_reg(dst_reg, dst_acc, dst_val * instrc.imm64);
       } else {
@@ -329,10 +385,12 @@ void interpret_easy64(const char *binname, char *arguments_string) {
       uint8_t dst_reg = get_index(instrc.dst);
       uint8_t dst_acc = get_access(instrc.dst);
 
-      if (instrc.src == 0xFF) {
+      if (instrc.src == 0xFFFF) {
         if (instrc.imm64 == 0) {
-          printf("Division by zero\n");
-          break;
+          cpu.reg[7].u64 = pc;
+          pc = cpu.reg[2].u64;
+          cpu.reg[4].u64 = 10;
+          continue;
         }
         uint64_t dst_val = read_reg(dst_reg, dst_acc);
         write_reg(dst_reg, dst_acc, dst_val / instrc.imm64);
@@ -343,8 +401,10 @@ void interpret_easy64(const char *binname, char *arguments_string) {
         uint64_t dst_val = read_reg(dst_reg, dst_acc);
         uint64_t src_val = read_reg(src_reg, src_acc);
         if (src_val == 0) {
-          printf("Division by zero\n");
-          break;
+          cpu.reg[7].u64 = pc;
+          pc = cpu.reg[2].u64;
+          cpu.reg[4].u64 = 10;
+          continue;
         }
         write_reg(dst_reg, dst_acc, dst_val / src_val);
         write_reg(dst_reg + 1, dst_acc, dst_val % src_val);
@@ -355,7 +415,7 @@ void interpret_easy64(const char *binname, char *arguments_string) {
       uint8_t dst_reg = get_index(instrc.dst);
       uint8_t dst_acc = get_access(instrc.dst);
 
-      if (instrc.src == 0xFF) {
+      if (instrc.src == 0xFFFF) {
         uint64_t dst_val = read_reg(dst_reg, dst_acc);
         write_reg(dst_reg, dst_acc, dst_val & instrc.imm64);
       } else {
@@ -372,7 +432,7 @@ void interpret_easy64(const char *binname, char *arguments_string) {
       uint8_t dst_reg = get_index(instrc.dst);
       uint8_t dst_acc = get_access(instrc.dst);
 
-      if (instrc.src == 0xFF) {
+      if (instrc.src == 0xFFFF) {
         uint64_t dst_val = read_reg(dst_reg, dst_acc);
         write_reg(dst_reg, dst_acc, dst_val | instrc.imm64);
       } else {
@@ -389,7 +449,7 @@ void interpret_easy64(const char *binname, char *arguments_string) {
       uint8_t dst_reg = get_index(instrc.dst);
       uint8_t dst_acc = get_access(instrc.dst);
 
-      if (instrc.src == 0xFF) {
+      if (instrc.src == 0xFFFF) {
         uint64_t dst_val = read_reg(dst_reg, dst_acc);
         write_reg(dst_reg, dst_acc, dst_val ^ instrc.imm64);
       } else {
@@ -406,7 +466,7 @@ void interpret_easy64(const char *binname, char *arguments_string) {
       uint8_t dst_reg = get_index(instrc.dst);
       uint8_t dst_acc = get_access(instrc.dst);
 
-      if (instrc.src == 0xFF) {
+      if (instrc.src == 0xFFFF) {
         write_reg(dst_reg, dst_acc, ~instrc.imm64);
       } else {
         uint8_t src_reg = get_index(instrc.src);
@@ -421,7 +481,7 @@ void interpret_easy64(const char *binname, char *arguments_string) {
       uint8_t dst_reg = get_index(instrc.dst);
       uint8_t dst_acc = get_access(instrc.dst);
 
-      if (instrc.src == 0xFF) {
+      if (instrc.src == 0xFFFF) {
         uint64_t dst_val = read_reg(dst_reg, dst_acc);
         write_reg(dst_reg, dst_acc, dst_val >> instrc.imm64);
       } else {
@@ -438,7 +498,7 @@ void interpret_easy64(const char *binname, char *arguments_string) {
       uint8_t dst_reg = get_index(instrc.dst);
       uint8_t dst_acc = get_access(instrc.dst);
 
-      if (instrc.src == 0xFF) {
+      if (instrc.src == 0xFFFF) {
         uint64_t dst_val = read_reg(dst_reg, dst_acc);
         write_reg(dst_reg, dst_acc, dst_val << instrc.imm64);
       } else {
@@ -469,7 +529,7 @@ void interpret_easy64(const char *binname, char *arguments_string) {
 
     case OPCODE_CMP: {
       uint64_t val1, val2;
-      if (instrc.src != 0xFF) {
+      if (instrc.src != 0xFFFF) {
         uint8_t src_reg = get_index(instrc.src);
         uint8_t src_acc = get_access(instrc.src);
         val1 = read_reg(src_reg, src_acc);
@@ -477,7 +537,7 @@ void interpret_easy64(const char *binname, char *arguments_string) {
         val1 = instrc.imm64;
       }
 
-      if (instrc.dst != 0xFF) {
+      if (instrc.dst != 0xFFFF) {
         uint8_t dst_reg = get_index(instrc.dst);
         uint8_t dst_acc = get_access(instrc.dst);
         val2 = read_reg(dst_reg, dst_acc);
@@ -535,13 +595,13 @@ void interpret_easy64(const char *binname, char *arguments_string) {
       break;
     }
     case OPCODE_SYSCALL: {
-      cpu.reg[1].u64 = pc;
+      cpu.reg[7].u64 = pc;
       pc = syscall_decoder_position;
       cpu.sl.mode = 0;
       continue;
     }
     case OPCODE_SYSRET: {
-      pc = cpu.reg[1].u64;
+      pc = cpu.reg[7].u64;
       cpu.sl.mode = 1;
       continue;
     }
@@ -571,12 +631,31 @@ void interpret_easy64(const char *binname, char *arguments_string) {
         uint8_t dst_acc = get_access(instrc.dst);
         uint64_t val = read_reg(dst_reg, dst_acc);
         disk[disk_index_position] = val;
+      } else if (instrc.imm64 == CLOCK_TIMER_SET) {
+        uint8_t dst_reg = get_index(instrc.dst);
+        uint8_t dst_acc = get_access(instrc.dst);
+        uint64_t val = read_reg(dst_reg, dst_acc);
+        timer = val;
       }
     } break;
     case OPCODE_CSL: {
+      uint8_t mode = 0;
+      if (instrc.dst != 0xFFFF) {
+        uint64_t val = 0;
+        uint8_t reg = get_index(instrc.dst);
+        uint8_t acc = get_access(instrc.dst);
+
+        size_t sz = access_size((RegAccessType)acc);
+
+        val = read_reg(reg, acc);
+        mode = val;
+      } else {
+        mode = instrc.imm64;
+      }
+      cpu.sl.mode = mode;
     }
     case OPCODE_SSDP: {
-      if (instrc.src != 0xFF) {
+      if (instrc.src != 0xFFFF) {
         uint8_t dst_reg = get_index(instrc.dst);
         uint8_t dst_acc = get_access(instrc.dst);
         uint64_t val = read_reg(dst_reg, dst_acc);
@@ -603,7 +682,7 @@ void interpret_easy64(const char *binname, char *arguments_string) {
     }
 
     case OPCODE_JMP:
-      if (instrc.src != 0xFF) {
+      if (instrc.src != 0xFFFF) {
         uint8_t dst_reg = get_index(instrc.dst);
         uint8_t dst_acc = get_access(instrc.dst);
         uint64_t val = read_reg(dst_reg, dst_acc);
@@ -644,23 +723,36 @@ void interpret_easy64(const char *binname, char *arguments_string) {
     case OPCODE_LOAD: {
       uint8_t dst_reg = get_index(instrc.dst);
       uint8_t dst_acc = get_access(instrc.dst);
-      uint8_t src_reg = get_index(instrc.src);
-      uint8_t src_acc = get_access(instrc.src);
-
-      uint64_t addr = read_reg(src_reg, src_acc);
+      uint64_t addr;
+      if (instrc.src == 0xFFFF) {
+        addr = instrc.imm64;
+      } else {
+        uint8_t src_reg = get_index(instrc.src);
+        uint8_t src_acc = get_access(instrc.src);
+        addr = read_reg(src_reg, src_acc);
+      }
 
       void *ptr = resolve_ptr(addr);
-      write_reg(dst_reg, dst_acc, *(uint8_t *)ptr);
+      if (ptr == NULL) {
+        cpu.reg[7].u64 = pc;
+        pc = cpu.reg[2].u64;
+        continue;
+      }
+
+      uint64_t val = 0;
+      size_t sz = access_size((RegAccessType)dst_acc);
+
+      memcpy(&val, ptr, sz);
+      write_reg(dst_reg, dst_acc, val);
       break;
     }
 
     case OPCODE_STORE: {
       uint8_t src_reg = get_index(instrc.src);
       uint8_t src_acc = get_access(instrc.src);
-
       uint64_t addr;
 
-      if (instrc.dst == 0xAD) {
+      if (instrc.dst == 0xFFFF) {
         addr = instrc.imm64;
       } else {
         uint8_t dst_reg = get_index(instrc.dst);
@@ -670,12 +762,13 @@ void interpret_easy64(const char *binname, char *arguments_string) {
 
       void *ptr = resolve_ptr(addr);
       if (ptr == NULL) {
-        fprintf(stderr, "STORE: Invalid memory access at address %lx\n", addr);
-        fclose(binfile);
-        return;
+        cpu.reg[7].u64 = pc;
+        pc = cpu.reg[2].u64;
+        continue;
       }
       uint64_t val = read_reg(src_reg, src_acc);
-      *(uint8_t *)ptr = (uint8_t)val;
+      size_t sz = access_size((RegAccessType)src_acc);
+      memcpy(ptr, &val, sz);
       break;
     }
 
@@ -685,6 +778,13 @@ void interpret_easy64(const char *binname, char *arguments_string) {
     default:
       continue;
     }
+
+    if (timer != 0 && cpu.reg[1].b1 == 1) {
+      timer--;
+    } else if (timer == 0 && cpu.reg[1].b1 == 1) {
+      pc = cpu.reg[5].u64;
+    }
+
     pc += sizeof(Instruction);
   }
 

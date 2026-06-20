@@ -14,11 +14,10 @@ typedef struct {
 
 typedef struct {
   uint8_t mode;
-  uint64_t mem_s;
-  uint64_t mem_e;
+  uint8_t regstart;
+  uint64_t interrupt_pos;
   uint64_t disk_s;
   uint64_t disk_e;
-  uint64_t interrupt_pos;
   uint64_t keyboard;
   uint64_t mouse;
   uint64_t usb_dev;
@@ -52,27 +51,27 @@ typedef struct {
 } CPU;
 
 typedef enum {
-  REG64_FULL,
-  REG32_LOW,
-  REG32_HIGH,
-  REG16_LOW,
-  REG16_MIDLOW,
-  REG16_MIDHIGH,
-  REG16_HIGH,
-  REG8_B0,
-  REG8_B1,
-  REG8_B2,
-  REG8_B3,
-  REG8_B4,
-  REG8_B5,
-  REG8_B6,
-  REG8_B7
+  REG64_FULL = 0,
+  REG32_LOW = 1,
+  REG32_HIGH = 2,
+  REG16_LOW = 3,
+  REG16_HIGH = 4,
+  REG16_MIDLOW = 5,
+  REG16_MIDHIGH = 6,
+  REG8_B0 = 7,
+  REG8_B1 = 8,
+  REG8_B2 = 9,
+  REG8_B3 = 10,
+  REG8_B4 = 11,
+  REG8_B5 = 12,
+  REG8_B6 = 13,
+  REG8_B7 = 14
 } RegAccessType;
 
 typedef struct {
   uint8_t opcode;
-  uint8_t src;
-  uint8_t dst;
+  uint16_t src;
+  uint16_t dst;
   uint64_t imm64;
 } Instruction;
 
