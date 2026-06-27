@@ -165,7 +165,6 @@ typedef enum {
   OPCODE_OUTB = 0x27,
   OPCODE_CSL = 0x28,
   OPCODE_SSDP = 0x29,
-  OPCODE_INFO = 0x30,
   OPCODE_SYSRET = 0x31,
 } Opcode;
 

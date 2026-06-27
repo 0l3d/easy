@@ -546,10 +546,6 @@ opcode(char *tokenized[], Instruction *instrc)
         nothing_operands(instrc, OPCODE_SYSCALL);
         return 1;
     }
-    else if (strcmp(tokenized[0], "info") == 0) {
-        nlbl_operands(tokenized, instrc, OPCODE_INFO);
-        return 1;
-    }
     else if (strcmp(tokenized[0], "csl") == 0) {
         nlbl_operands(tokenized, instrc, OPCODE_CSL);
         return 1;
