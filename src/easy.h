@@ -4,12 +4,13 @@
 #define MAX_REGS 30
 
 typedef struct {
-  int section_data;
-  int section_bss;
-  int section_code;
-  int bss_size;
-  int data_size;
-  int entry_start_point;
+  uint64_t section_data;
+  uint64_t section_bss;
+  uint64_t section_code;
+  uint64_t code_size;
+  uint64_t bss_size;
+  uint64_t data_size;
+  uint64_t entry_start_point;
 } BinaryHeader;
 
 typedef struct {
@@ -96,13 +97,13 @@ typedef enum {
 } DataType;
 
 typedef struct {
-  char name[32];
+  char name[128];
   int address;
   LabelType type;
 } Label;
 
 typedef struct {
-  char name[32];
+  char name[128];
   int addr;
   DataType type;
   union {
@@ -119,7 +120,7 @@ typedef struct {
 } BSSSectionType;
 
 typedef struct {
-  char name[32];
+  char name[128];
   BSSSectionType section;
 } BSS;
 
