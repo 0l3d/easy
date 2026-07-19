@@ -1114,7 +1114,7 @@ write_code_only(const char *asm_file, const char *out_file)
 }
 
 void
-parser(const char *asm_file, const char *out_file, int no_kernel_mode)
+parser(const char *asm_file, const char *out_file, int no_head, int secend)
 {
     FILE *asmfi = fopen(asm_file, "rb");
     if (asmfi == NULL) {
@@ -1135,15 +1135,18 @@ parser(const char *asm_file, const char *out_file, int no_kernel_mode)
         }
     }
     fclose(asmfi);
-    if (no_kernel_mode == 1) {
+    if (no_head == 1) {
         write_code_only(asm_file, out_file);
+        if (secend == 1) {
+            write_data(asm_file, out_file);
+            write_bss(asm_file, out_file);
+        }
         return;
     }
-
-    write_bss(asm_file, out_file);
     write_data(asm_file, out_file);
+    write_bss(asm_file, out_file);
     write_code(asm_file, out_file);
-
+    
     for (int i = 0; i < imported_count; i++) {
         free(imported_files[i]);
     }

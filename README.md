@@ -26,15 +26,6 @@ make
 ./easy -h
 ```
 
-### Compile and Interpret
-
-```bash
-./easy -c hello.asm -a "nokernel"
-# if you dont put "nokernel", then assembler creates a Program assembly, contains like: header, data section, bss section bla bla.
-# We are working on No Bootloader, No Kernel mode, so we need to initalize our memory from zero when using "nokernel".
-./easy -i a.out # reads it default in "nokernel" mode.
-```
-
 # How to work on Easy64?
 
 This Program is emulating real hardware, so you cant work on it without a bootloader, kernel, micro-controller or any software.  

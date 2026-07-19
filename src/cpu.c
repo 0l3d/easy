@@ -4,71 +4,96 @@
 #include <string.h>
 #include <unistd.h>
 
-const char *help =
-    "Usage: easy [-c] [-i] [-h]\n"
-    "  -h              Show this help\n"
-    "  -c              Compile easy64 assembly\n"
-    "  -i              Interpret easy64 binary\n"
-    "  -o 			   Specify output name for compile\n";
+const char     *help =
+	"Usage: easy [-c] [-i] [-h]\n"
+	"  -h              Show this help\n"
+	"  -c              Compile easy64 assembly\n"
+	"  -i              Interpret easy64 binary\n"
+	"  -o 			   Specify output name for compile\n";
 
-int main(int argc, char **argv) {
-  char *output_name = NULL;
-  char *compile_file = NULL;
-  char *arguments = NULL;
-  char *binfile = NULL;
-  int opt;
-  int compile = 0;
-  int interpret = 0;
-  while ((opt = getopt(argc, argv, "hc:i:o:a:")) != -1) {
-    switch (opt) {
-    case 'h':
-      printf("%s", help);
-      break;
-    case 'c':
-      compile = 1;
-      compile_file = strdup(optarg);
-      break;
-    case 'i':
-      interpret = 1;
-      binfile = strdup(optarg);
-      break;
-    case 'a':
-      arguments = strdup(optarg);
-      break;
-    case 'o':
-      output_name = strdup(optarg);
-      break;
-    default:
-      break;
-    }
-  }
+int
+main(int argc, char **argv)
+{
+	char           *output_name = NULL;
+	char           *compile_file = NULL;
+	char           *arguments = NULL;
+	char           *binfile = NULL;
+	int             opt;
+	int             compile = 0;
+	int             interpret = 0;
+	while ((opt = getopt(argc, argv, "hc:i:o:a:")) != -1) {
+		switch (opt) {
+		case 'h':
+			printf("%s", help);
+			break;
+		case 'c':
+			compile = 1;
+			compile_file = strdup(optarg);
+			break;
+		case 'i':
+			interpret = 1;
+			binfile = strdup(optarg);
+			break;
+		case 'a':
+			arguments = strdup(optarg);
+			break;
+		case 'o':
+			output_name = strdup(optarg);
+			break;
+		default:
+			break;
+		}
+	}
 
-  if (interpret == 1 && compile == 0) {
-    if (binfile == NULL) {
-      printf("Need an argument -i: Undefined file.");
-    } else {
-      interpret_easy64(binfile, arguments);
-      free(binfile);
-    }
-    if (arguments != NULL) {
-      free(arguments);
-    }
-  }
+	if (interpret == 1 && compile == 0) {
+		if (binfile == NULL) {
+			printf("Need an argument -i: Undefined file.");
+		}
+		else {
+			interpret_easy64(binfile, arguments);
+			free(binfile);
+		}
+		if (arguments != NULL) {
+			free(arguments);
+		}
+	}
 
-  if (compile == 1 && interpret == 0) {
-    if (output_name == NULL) {
-      output_name = strdup("a.out");
-    }
-    if (compile_file == NULL) {
-      printf("Need an argument -c: Undefined file.");
-      return 1;
-    }
-    int no_kernel = 0;
-    if (arguments != NULL && strcmp(arguments, "nokernel") == 0)
-      no_kernel = 1;
-    parser(compile_file, output_name, no_kernel);
-    free(compile_file);
-    free(output_name);
-  }
-  return 0;
+	if (compile == 1 && interpret == 0) {
+		if (output_name == NULL) {
+			output_name = strdup("a.out");
+		}
+		if (compile_file == NULL) {
+			printf("Need an argument -c: Undefined file.");
+			return 1;
+		}
+		int             no_head = 0;
+		int             secend = 0;
+		if (arguments != NULL) {
+			if (strchr(arguments, ',')) {
+				char           *arg = strtok(arguments, ",");
+
+				while (arg != NULL) {
+					if (strcmp(arg, "nohead") == 0)
+						no_head = 1;
+
+					if (strcmp(arg, "secend") == 0)
+						secend = 1;
+					arg = strtok(NULL, ",");
+				}
+			}
+			else {
+				if (strcmp(arguments, "nohead") == 0)
+					no_head = 1;
+
+				if (strcmp(arguments, "secend") == 0)
+					secend = 1;
+			}
+		}
+
+
+		parser(compile_file, output_name, no_head, secend);
+		free(compile_file);
+		free(output_name);
+	}
+	return 0;
 }

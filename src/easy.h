@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define MAX_REGS 30
+#define MAX_REGS 50
 
 typedef struct {
   uint64_t section_data;
@@ -168,5 +168,5 @@ typedef enum {
   OPCODE_SYSRET = 0x31,
 } Opcode;
 
-void parser(const char *asm_file, const char *out_file, int no_kernel_mode);
+void parser(const char *asm_file, const char *out_file, int no_head, int secend);
 void interpret_easy64(const char *binname, char *arguments_string);

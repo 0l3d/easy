@@ -1,4 +1,4 @@
-CC      = clang
+CC      = cc
 TARGET  = easy
 
 SOURCES = ./src/interpreter.c \
