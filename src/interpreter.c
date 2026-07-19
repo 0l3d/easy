@@ -412,7 +412,7 @@ interpret_easy64(const char *binname, char *arguments_string)
 	}
 
 	if (enable_debug_console == 1) {
-		printf("n -> run and next\ns -> timer next \ni-> set specific instruction breakpoint\ng -> set pc to specific pos\nc -> print current instrc \nv -> print register values \nm -> memory dump to easy_memory.dump \nd -> disk dump to easy_disk.img \nr -> rom dump to easy_rom.bin \nq -> stop debugging and stop emulator\nf -> print private values\n");
+		printf("n -> run and next\ns -> timer next \ni -> set specific instruction breakpoint\ng -> set pc to specific pos\nc -> print current instrc \nv -> print register values \nm -> memory dump to easy_memory.dump \nd -> disk dump to easy_disk.img \nr -> rom dump to easy_rom.bin \nq -> stop debugging and stop emulator\nf -> print private values\n");
 		printf("USAGE: \ni: i instrc_code imm src dst\ns: s howmany?\ng: g whichpos?\n");
 	}
 

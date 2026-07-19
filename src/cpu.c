@@ -9,7 +9,14 @@ const char     *help =
 	"  -h              Show this help\n"
 	"  -c              Compile easy64 assembly\n"
 	"  -i              Interpret easy64 binary\n"
-	"  -o 			   Specify output name for compile\n";
+	"  -o 			   Specify output name for compile\n"
+	"  -a 			   Arguments option.\n"
+	"ARGUMENTS:						\n"
+	"debug (emulator): Run with debugger.\n"
+	"filename (like kernel.bin, emulator): Dump file to emulated disk.\n"
+	"nohead (assembler): No header\n"
+	"secend (assembler): Write sections to end of the file.\n"
+	"Seperator: ','\n";
 
 int
 main(int argc, char **argv)
