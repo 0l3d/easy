@@ -26,6 +26,10 @@ make
 ./easy -h
 ```
 
+### Debugger
+<img width="794" height="516" alt="Screenshot from 2026-07-19 16-08-14" src="https://github.com/user-attachments/assets/85385144-b1d6-4a66-a16d-5c118b31059d" />
+
+
 # How to work on Easy64?
 
 This Program is emulating real hardware, so you cant work on it without a bootloader, kernel, micro-controller or any software.  
