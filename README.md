@@ -19,7 +19,7 @@ Wiki: [Easy64 Wiki](https://github.com/0l3d/easy/wiki)
 ## Usage
 
 ```bash
-git clone https://git.sr.ht/~oled/easy
+git clone https://github.com/0l3d/easy
 cd easy64/
 make
 
@@ -42,4 +42,4 @@ This project is licensed under the **GPL-3.0 License**.
 
 # Author
 
-Created By **oled**
+Created By **0l3d**
