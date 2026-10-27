@@ -486,11 +486,12 @@ interpret_easy64(const char *binname, char *arguments_string)
 					printf("NEXT!\n");
 					con = 1;
 					break;
-				case 'g':
+				case 'g': {
 					uint64_t pos;
 					scanf("%lu", &pos);
 					pc = pos;
 					printf("New Program Counter position: %lu\n", pc);
+					  }
 					break;
 				case 'f':
 					printf("EMULATOR RUNNING: %d\n",
@@ -514,10 +515,11 @@ interpret_easy64(const char *binname, char *arguments_string)
 					scanf("%hu", &debug_src);
 					scanf("%hu", &debug_dst);
 					break;
-				case 's':
+				case 's': {
 					int             how_many;
 					scanf("%d", &how_many);
 					debug_timer = how_many;
+					  }
 					break;
 				case 'c':
 					printf("Current instrc op: %x, imm: %lu, src: %d, dst: %d, PC: %lu\n", instrc.opcode, instrc.imm64, instrc.src, instrc.dst, pc);
@@ -529,7 +531,7 @@ interpret_easy64(const char *binname, char *arguments_string)
 					}
 					printf("Registers printed.");
 					break;
-				case 'm':
+				case 'm': {
 					FILE * memory_dump_file =
 						fopen("easy_memory.dump",
 						      "wb");
@@ -543,8 +545,9 @@ interpret_easy64(const char *binname, char *arguments_string)
 					       memory_dump_file);
 
 					fclose(memory_dump_file);
+					  }
 					break;
-				case 'd':
+				case 'd': {
 					FILE * disk_dump_file =
 						fopen("easy_disk.img", "wb");
 					if (disk_dump_file == NULL) {
@@ -556,8 +559,9 @@ interpret_easy64(const char *binname, char *arguments_string)
 					       disk_dump_file);
 
 					fclose(disk_dump_file);
+					  }
 					break;
-				case 'r':
+				case 'r': {
 					FILE * rom_dump_file =
 						fopen("easy_rom.bin", "wb");
 					if (rom_dump_file == NULL) {
@@ -569,6 +573,7 @@ interpret_easy64(const char *binname, char *arguments_string)
 					       rom_dump_file);
 
 					fclose(rom_dump_file);
+					  }
 					break;
 				case 'q':
 					con = 1;
