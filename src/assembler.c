@@ -426,12 +426,12 @@ opcode(char *tokenized[], Instruction *instrc)
         def_operand(tokenized, instrc, OPCODE_MOV);
         return 1;
     }
-    else if (strcmp(tokenized[0], "inb") == 0) {
-        def_operand(tokenized, instrc, OPCODE_INB);
+    else if (strcmp(tokenized[0], "in") == 0) {
+        def_operand(tokenized, instrc, OPCODE_IN);
         return 1;
     }
-    else if (strcmp(tokenized[0], "outb") == 0) {
-        def_operand(tokenized, instrc, OPCODE_OUTB);
+    else if (strcmp(tokenized[0], "out") == 0) {
+        def_operand(tokenized, instrc, OPCODE_OUT);
         return 1;
     }
     else if (strcmp(tokenized[0], "add") == 0) {

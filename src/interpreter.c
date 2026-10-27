@@ -412,7 +412,7 @@ interpret_easy64(const char *binname, char *arguments_string)
 	}
 
 	if (enable_debug_console == 1) {
-		printf("n -> run and next\ns -> timer next \ni -> set specific instruction breakpoint\ng -> set pc to specific pos\nc -> print current instrc \nv -> print register values \nm -> memory dump to easy_memory.dump \nd -> disk dump to easy_disk.img \nr -> rom dump to easy_rom.bin \nq -> stop debugging and stop emulator\nf -> print private values\n");
+		printf("h -> help\nn -> run and next\ns -> timer next \ni -> set specific instruction breakpoint\ng -> set pc to specific pos\nc -> print current instrc \nv -> print register values \nm -> memory dump to easy_memory.dump \nd -> disk dump to easy_disk.img \nr -> rom dump to easy_rom.bin \nq -> stop debugging and stop emulator\nf -> print private values\n");
 		printf("USAGE: \ni: i instrc_code imm src dst\ns: s howmany?\ng: g whichpos?\n");
 	}
 
@@ -440,7 +440,8 @@ interpret_easy64(const char *binname, char *arguments_string)
 		if (enable_debug_console == 1) {
 			printf("Current instrc op: %x, imm: %lu, src: %d, dst: %d, PC: %lu\n", instrc.opcode, instrc.imm64, instrc.src, instrc.dst, pc);
 
-			/* Commands: 
+			/* Commands:
+			 * h -> help 
 			 * n -> next
 			 * s -> timer next
 			 * f -> print private values
@@ -477,6 +478,10 @@ interpret_easy64(const char *binname, char *arguments_string)
 				printf("\nDEBUGGER >");
 				scanf("%c", &command);
 				switch (command) {
+				case 'h': {
+					printf("n -> run and next\ns -> timer next \ni -> set specific instruction breakpoint\ng -> set pc to specific pos\nc -> print current instrc \nv -> print register values \nm -> memory dump to easy_memory.dump \nd -> disk dump to easy_disk.img \nr -> rom dump to easy_rom.bin \nq -> stop debugging and stop emulator\nf -> print private values\n");
+		printf("USAGE: \ni: i instrc_code imm src dst\ns: s howmany?\ng: g whichpos?\n");
+					  } break;
 				case 'n':
 					printf("NEXT!\n");
 					con = 1;
@@ -982,7 +987,7 @@ interpret_easy64(const char *binname, char *arguments_string)
 				cpu.sl.mode = 1;
 				continue;
 			}
-		case OPCODE_INB:{
+		case OPCODE_IN:{
 				uint8_t         dst_reg =
 					get_index(instrc.dst);
 				uint8_t         access_type =
@@ -1019,7 +1024,7 @@ interpret_easy64(const char *binname, char *arguments_string)
 
 			}
 			break;
-		case OPCODE_OUTB:{
+		case OPCODE_OUT:{
 				uint8_t         dst_reg =
 					get_index(instrc.dst);
 				uint8_t         dst_acc =
